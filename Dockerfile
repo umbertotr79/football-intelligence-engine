@@ -4,4 +4,4 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 RUN mkdir -p /app/data/raw
-CMD ["python", "-m", "app.collect_daily"]
+CMD ["sh", "-c", "python -m app.collect_daily && python -m app.odds_collector"]
