@@ -203,7 +203,7 @@ def collect_odds(target_date: str) -> tuple[int, int, int]:
         odds_saved += saved_now
 
         paging = payload.get("paging") or {}
-        total_pages = int(paging.get("total") or 1)
+        total_pages = min(int(paging.get("total") or 1), 3)
 
         print(
             f"Pagina {current_page}/{total_pages} completata: "
