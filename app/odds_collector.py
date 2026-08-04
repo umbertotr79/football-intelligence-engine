@@ -6,11 +6,11 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 from app.api_client import ApiFootballClient
-from app.db import connection, init_database
+from app.db import connection, init_database, IS_POSTGRES
 from app.storage import save_raw
 
 
-ODDS_SCHEMA = """
+ODDS_SCHEMA_SQLITE = """
 CREATE TABLE IF NOT EXISTS odds (
     odds_id INTEGER PRIMARY KEY AUTOINCREMENT,
     fixture_id INTEGER NOT NULL,
@@ -38,12 +38,15 @@ CREATE INDEX IF NOT EXISTS idx_odds_market
 ON odds(bet_name, value_name);
 """
 
+ODDS_SCHEMA_POSTGRES = ODDS_SCHEMA_SQLITE.replace(
+    "odds_id INTEGER PRIMARY KEY AUTOINCREMENT", "odds_id BIGSERIAL PRIMARY KEY"
+)
 
 def init_odds_database() -> None:
     init_database()
 
     with connection() as conn:
-        conn.executescript(ODDS_SCHEMA)
+        conn.executescript(ODDS_SCHEMA_POSTGRES if IS_POSTGRES else ODDS_SCHEMA_SQLITE)
 
 
 def load_fixture_ids() -> set[int]:
@@ -132,9 +135,13 @@ def save_rows(rows: list[tuple]) -> int:
         return 0
 
     with connection() as conn:
-        conn.executemany(
-            """
-            INSERT OR REPLACE INTO odds (
+        insert_prefix = "INSERT INTO"
+        conflict = """
+            ON CONFLICT (fixture_id, bookmaker_id, bet_id, value_name, api_update)
+            DO UPDATE SET odd=excluded.odd, bookmaker_name=excluded.bookmaker_name, collected_at=excluded.collected_at
+        """ if IS_POSTGRES else ""
+        sql = f"""
+            {insert_prefix} odds (
                 fixture_id,
                 bookmaker_id,
                 bookmaker_name,
@@ -146,9 +153,12 @@ def save_rows(rows: list[tuple]) -> int:
                 collected_at
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            rows,
-        )
+            {conflict}
+        """
+        if IS_POSTGRES:
+            conn.executemany(sql, rows)
+        else:
+            conn.executemany(sql.replace("INSERT INTO", "INSERT OR REPLACE INTO", 1), rows)
 
     return len(rows)
 
