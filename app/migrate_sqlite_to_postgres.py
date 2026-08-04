@@ -14,7 +14,7 @@ TABLES = [
     "leagues",
     "teams",
     "fixtures",
-    "collection_runs",
+    
 ]
 
 
