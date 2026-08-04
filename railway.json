@@ -8,6 +8,7 @@
     "startCommand": "python -m app.migrate_sqlite_to_postgres",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
+    
   }
 }
   }
