@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.db import connection, init_database
-
+from app.odds_collector import collect_odds_for_fixtures
 FINISHED = {"FT", "AET", "PEN"}
 
 @dataclass
@@ -71,7 +71,7 @@ def best_over15_odd(fixture_id: int) -> float | None:
             row = conn.execute("""
                 SELECT MAX(odd) AS odd FROM odds
                 WHERE fixture_id=?
-                  AND LOWER(bet_name) LIKE '%over/under%'
+                  AND LOWER(bet_name)= 'goals over/under'
                   AND (value_name='Over 1.5' OR value_name='Over 1.5 Goals')
             """, (fixture_id,)).fetchone()
         except Exception:
@@ -146,9 +146,19 @@ def main() -> None:
         if r['roi'] is None: print("ROI: non calcolabile senza quote storiche abbinate")
         else: print(f"ROI: {r['roi']:.2f}% | Profitto: {r['profit_units']:.2f} unità")
     else:
-        picks=upcoming(cfg)
-        print(f"Selezioni Over 1.5: {len(picks)}")
-        for p in picks[:30]:
-            print(f"{p['home_team']} - {p['away_team']} | {p['score']}/100 | {p['home_rate']}%-{p['away_rate']}% | quota {p['odd'] or 'n/d'}")
+         picks = upcoming(cfg)
 
+    fixture_ids = [p["fixture_id"] for p in picks]
+    if fixture_ids:
+        collect_odds_for_fixtures(fixture_ids)
+        picks = upcoming(cfg)
+
+    print(f"Selezioni Over 1.5: {len(picks)}")
+    for p in picks[:30]:
+        print(
+            f"{p['home_team']} - {p['away_team']} | "
+            f"{p['score']}/100 | "
+            f"{p['home_rate']}%-{p['away_rate']}% | "
+            f"quota {p['odd'] or 'n/d'}"
+        )
 if __name__ == "__main__": main()

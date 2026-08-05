@@ -226,7 +226,32 @@ def collect_odds(target_date: str) -> tuple[int, int, int]:
 
     return pages_requested, fixtures_received, odds_saved
 
+def collect_odds_for_fixtures(fixture_ids: list[int]) -> tuple[int, int]:
+    client = ApiFootballClient()
+    fixtures_received = 0
+    odds_saved = 0
 
+    for fixture_id in fixture_ids:
+        print(f"Raccolta quote partita {fixture_id}...", flush=True)
+
+        payload = client.get(
+            "odds",
+            {"fixture": fixture_id},
+        )
+
+        response = payload.get("response") or []
+        fixtures_received += len(response)
+
+        rows = extract_rows(response, {fixture_id})
+        saved_now = save_rows(rows)
+        odds_saved += saved_now
+
+        print(
+            f"Partita {fixture_id}: {saved_now} quote salvate.",
+            flush=True,
+        )
+
+    return fixtures_received, odds_saved
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Raccoglie le quote pre-partita da API-Football."
