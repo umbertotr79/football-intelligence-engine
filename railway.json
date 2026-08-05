@@ -4,7 +4,7 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "startCommand": "python -m app.migrate_sqlite_to_postgres",
+    "startCommand": "sh -c \"python -m app.collect_daily && python -m app.odds_collector\"",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
