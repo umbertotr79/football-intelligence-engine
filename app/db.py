@@ -125,8 +125,14 @@ class CompatConnection:
     def execute(self, sql: str, params: tuple | list = ()):
         return self._conn.execute(self._sql(sql), params)
 
-    def executemany(self, sql: str, params):
-        return self._conn.executemany(self._sql(sql), params)
+    def executemany(self, sql: str, params) -> None:
+    translated_sql = self._sql(sql)
+
+    if self.postgres:
+        with self._conn.cursor() as cursor:
+            cursor.executemany(translated_sql, params)
+    else:
+        self._conn.executemany(translated_sql, params)
 
     def executescript(self, script: str) -> None:
         if self.postgres:
